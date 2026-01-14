@@ -54,7 +54,7 @@ def create_mesh(
 
         head += max_batch
 
-    # for occupancy instead of SDF, subtract 0.5 so the surface boundary becomes 0
+    # for occupancy instead of ALI, subtract 0.5 so the surface boundary becomes 0
     sdf_values = cube[:, 3] - 0.5 if occupancy else cube[:, 3]
     sdf_values = sdf_values.reshape(N, N, N)
 
@@ -69,7 +69,7 @@ def create_mesh(
     )
 
 
-# generate the point cloud inside the mesh (sdf < 0) to evaluate POR.
+# generate the point cloud inside the mesh (ali < 0) to evaluate POR.
 def uniform_sample_point_inside_mesh(model, shape_feature, max_batch=(1<<16), resolution=256):
     points = create_cube(resolution)
     total = points.shape[0]
@@ -131,7 +131,7 @@ def convert_sdf_samples_to_ply(
     level_set=0.0
 ):
     """
-    Convert sdf samples to .ply
+    Convert ali samples to .ply
 
     :param pytorch_3d_sdf_tensor: a torch.FloatTensor of shape (n,n,n)
     :voxel_grid_origin: a list of three floats: the bottom, left, down origin of the voxel grid

@@ -1,1 +1,0 @@
-from .sdf_decoder import SdfDecoder as Decoder

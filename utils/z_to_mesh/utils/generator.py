@@ -120,7 +120,7 @@ class Generator3DSDF(object):
             with torch.no_grad():
                 occ_hat = self.model(pi, z, c, **kwargs)
 
-            # [<skip>]: when sdf < 0 means inside the object,
+            # [<skip>]: when ali < 0 means inside the object,
             # but for original code which the output of the model is the logits of occupancy,
             # the sign is opposite.
             if not self.positive_inside:

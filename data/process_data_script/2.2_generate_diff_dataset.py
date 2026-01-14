@@ -12,8 +12,8 @@ from transformers import AutoTokenizer, T5EncoderModel
 
 import sys
 sys.path.append('../..')
-from model.SDFAutoEncoder import SDFAutoEncoder
-from model.SDFAutoEncoder.dataloader import GenSDFDataset
+from models.geometry_vae import GeometryVAE
+from models.geometry_vae.dataloader import GenSDFDataset
 from utils.mylogging import Log
 from utils import to_cuda, camel_to_snake
 
@@ -25,7 +25,7 @@ best_ckpt_path = None
 
 def determine_latentcode_encoder(best_ckpt_path):
     Log.info('Using best ckpt: %s', best_ckpt_path)
-    gensdf = SDFAutoEncoder.load_from_checkpoint(best_ckpt_path)
+    gensdf = GeometryVAE.load_from_checkpoint(best_ckpt_path)
     return gensdf
 
 def evaluate_latent_codes(gensdf):
@@ -62,7 +62,7 @@ def evaluate_latent_codes(gensdf):
             latent = z[batch, ...]
             latent_numpy = latent.detach().cpu().numpy()
             path = x['filename'][batch]
-            path = Path(path).stem.replace('.sdf', '') + ".ply"
+            path = Path(path).stem.replace('.ali', '') + ".ply"
             path_to_latent[path] = latent_numpy
             # Log.info(f"Latent code for {path} is {latent_numpy.shape}")
 
@@ -91,8 +91,8 @@ def encode_texts(texts, t5_cache_path, t5_model_name, t5_batch_size, t5_device, 
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Generate Diffusion Dataset.')
-    parser.add_argument('--sdf_ckpt_path', type=str, help='Ckpt of SDF Model.')
+    parser = argparse.ArgumentParser(description='Generate Flow Dataset.')
+    parser.add_argument('--sdf_ckpt_path', type=str, help='Ckpt of ALI Model.')
     parser.add_argument('--category', type=str, default=None, help='Specify the category to process (e.g., StorageFurniture).')
     args = parser.parse_args()
 

@@ -10,7 +10,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 sys.path.append('../..')
-from model.Diffusion import Diffusion
+from models.geometry_flow import Flow
 from utils import (to_cuda, tokenize_part_info,
                    generate_special_tokens, HighPrecisionJsonEncoder, str2hash)
 from utils.mylogging import Log
@@ -24,7 +24,7 @@ max_count_token = 0
 best_diffusion_ckpt_point = None
 
 def evaluate_latent_codes():
-    diffusion_model = Diffusion.load_from_checkpoint(best_diffusion_ckpt_point)
+    diffusion_model = Flow.load_from_checkpoint(best_diffusion_ckpt_point)
     diffusion_model = diffusion_model.to(device)
 
     mini_z_encoder = diffusion_model.z_mini_encoder
@@ -196,7 +196,7 @@ def process_image_condition():
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Generate Articulation Dataset.')
-    parser.add_argument('--diff_ckpt_path', type=str, help='Ckpt of Diffusion Model.')
+    parser.add_argument('--diff_ckpt_path', type=str, help='Ckpt of Flow Model.')
     parser.add_argument('--category', type=str, default=None, help='Specify the category to process (e.g., StorageFurniture).')
     args = parser.parse_args()
 

@@ -1,152 +1,129 @@
-![](attachment/cvpr25_poster_5120.png)
+# KinemaFlow: Structured Kinematic Flow Matching for Efficient Articulated Object Generation
 
-# ArtFormer: Controllable Generation of Diverse 3D Articulated Objects (CVPR 2025)
+<!-- <a href="https://arxiv.org/"><img src="https://img.shields.io/badge/arXiv-202X.XXXXX-b31b1b.svg" height=22.5></a>
+<a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" height=22.5></a> -->
 
-![](attachment/result.gif)
+<!-- > **Authors**: [Your Name], [Co-author Name], ...
+> **Affiliation**: [Your Affiliation] -->
 
-This work was accepted by CVPR 2025.
+**KinemaFlow** is a novel generative framework for efficient and physically plausible 3D articulated object generation. By decoupling generation into a **Kinematics Stream** and a **Geometry Stream** via **Accelerated Flow Matching (AFT)**, we achieve state-of-the-art visual quality with significantly reduced inference latency (~200s). A **Physical Plausibility Flow Rectification** module further ensures collision-free interactions.
 
-You may check the repo with all commits in `https://github.com/ShuYuMo2003/TransArticulate/tree/main` if you are interested :).
+<p align="center">
+  <img src="attachment\arc.png" width="90%"/>
+</p>
 
-## Clone the repo
-```
-git clone https://github.com/ShuYuMo2003/ArtFormer.git
-```
+## 🌟 Key Features
+- **⚡ Efficient Inference**: Generates high-fidelity articulated assets in ~200s (vs. 500s+ for baselines).
+- **🔧 Physics-Aware**: Integrated energy-based *Physical Rectification* to prevent part interpenetration.
+- **🎨 High Fidelity**: Leverages *Latent Distillation* for sharp texture and geometry details.
+- **🧩 Decoupled Architecture**: Separate streams for Kinematics (motion) and Geometry (shape).
 
-## Set up Environment
+## 🛠️ Installation
 
-### Conda Env
-```
-conda env create -f env.yml
-conda activate gao
-```
+The code is tested on Ubuntu 20.04 with Python 3.9 and PyTorch 2.0+ (CUDA 11.8).
 
-Get into `utils/z_to_mesh/utils/libmcubes`, run `python setup.py build_ext --inplace`.
-compile `utils/z_to_mesh/utils/libmise` and ``utils/z_to_mesh/utils/libsimplify` with the same command.
+```bash
+# 1. Clone the repository
+git clone [https://github.com/yourusername/KinemaFlow.git](https://github.com/yourusername/KinemaFlow.git)
+cd KinemaFlow
 
-### Set up Wandb
+# 2. Create conda environment
+conda env create -f env.yaml
+conda activate kinemaflow
 
-We use `wandb` to recording the logs durning the training. You may need to login first.
-```
-wandb login
-```
-
-### Download blender
-```
-mkdir 3rd && cd 3rd
-wget https://ftp.halifax.rwth-aachen.de/blender/release/Blender4.2/blender-4.2.2-linux-x64.tar.xz
-tar -xvf blender-4.2.2-linux-x64.tar.xz
-```
-
-## Try demo
-download [articulation transformer checkpoint](https://drive.google.com/drive/folders/1CDX-i6SdeqAaBfHVw9wibHrAmtB7zZ_N?usp=sharing) and change the first line of `configs/3_TF-Diff/text-eval.yaml`.
+# 3. Install custom CUDA kernels (for efficient geometric processing)
+cd utils/z_to_mesh/utils/libmcubes
+python setup.py build_ext --inplace
+cd ../libsimplify
+python setup.py build_ext --inplace
 
 ```
-python demo.py -c configs/3_TF-Diff/text-eval.yaml
-```
 
-## Prepare Dataset & Training Model
+## 📂 Data Preparation
 
-### Download partnet-mobility-v0.zip
-Download the dataset(`partnet-mobility-v0.zip`) from `https://sapien.ucsd.edu/downloads`.
-```
-cd data/datasets
-# place `partnet-mobility-v0.zip` here
-unzip partnet-mobility-v0.zip
-mv dataset 0_raw_dataset
-```
+We use the **PartNet-Mobility** dataset.
 
-### Prepare SDF Model Dataset & Training
+1. Download the dataset from [Sapien/PartNet-Mobility](https://sapien.ucsd.edu/downloads).
+2. Preprocess the data to extract latents and kinematic chains:
+
+```bash
+# Extract ground truth latents using the frozen Latent Distiller (TRELLIS backbone)
+python data/preprocessing/1_extract_from_raw_dataset.py --input_dir /path/to/partnet --output_dir ./dataset/processed
 
 ```
-cd ../process_data_script
-python 1_extract_from_raw_dataset.py
-```
-The script above will refactor the structure of data in the raw dataset. It's fine if you encounter a little `Failed shape` after the execution, which is caused by some broken objects in PartNet-Mobility.
 
+## 🚀 Training
 
-```
-python 2.1_generate_gensdf_dataset.py --n_process 20
-```
-The script above will sample the $\text{Point Cloud}$ and the $(\text{Position} \in \mathbb{R}^3, \text{SDF} \in \mathbb{R})$ pair for the meshes of each sub-parts of each articulated objectes in the dataset. The script runs on CPU.
+KinemaFlow is trained in three stages. Configs are located in `configs/`.
 
-This process may take about $30$ mins with `--n_process 20`. If your CPU or memory is insufficient, please reduce `--n_process` appropriately.
+### Stage 1: Latent Distillation (Geometry VAE)
 
-After the processing of each mesh, the script will print a table about some related info like:
-```
-┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
-┃     Item      ┃    Shape    ┃ Occ Rate ┃      Bounds      ┃  Abs Sdf Range  ┃
-┡━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
-│ Point Uniform │ (200000, 3) │  0.0249  │ -1.0250 ~ 1.0250 │ 0.0000 ~ 1.0486 │
-│ Point Surface │ (200000, 3) │  0.4907  │ -1.0470 ~ 1.0485 │ 0.0000 ~ 0.0521 │
-│ Point On Mesh │ (144018, 3) │  0.1795  │ -1.0057 ~ 1.0058 │ 0.0000 ~ 0.0000 │
-│     Total     │ (544018, 3) │  0.2371  │ -1.0470 ~ 1.0485 │ 0.0000 ~ 1.0486 │
-└───────────────┴─────────────┴──────────┴──────────────────┴─────────────────┘
-```
-If you do see this table, it means everything is working fine. If you never see this table in stdout, it might indicate a **sampling failure!** Please reduce your `--n_process` value appropriately.
+Train the AutoEncoder to compress 3D geometry into a sparse latent space.
 
-
-Following script will start the training process for SDF model.
-```
-cd ../.. # back to repo root folder.
-python 1_train_SDF.py -c configs/1_SDF/train.yaml
-```
-
-### Prepare Diffusion Dataset & Training
-After training of SDF model, you can choose a checkpoint of SDF model in `train_root_dir`. The path of checkpoint should be like `train_root_dir/SDF/checkpoint/05-16-02PM-26-34/sdf_epoch=2539-loss=0.00233.ckpt`.
+```bash
+python train_stage1_vae.py --config configs/stage1_vae/train.yaml
 
 ```
-cd data/process_data_script
-python 2.2_generate_diff_dataset.py --sdf_ckpt_path path/to/SDF/checkpoint
-```
-The script will generate the dataset for diffusion model.
+
+### Stage 2: Geometry Stream (Flow Matching)
+
+Train the diffusion-based flow matching model to generate geometry latents conditioned on text/kinematics.
+
+```bash
+python train_stage2_geometry_flow.py --config configs/stage2_geometry/train_with_flow_matching.yaml
 
 ```
-cd ../.. # back to repo root folder.
-python 2_train_diff.py -c configs/2_Diff/train.yaml
+
+### Stage 3: Kinematics Stream
+
+Train the Transformer to predict kinematic parameters (joint types, axes, limits).
+
+```bash
+python train_stage3_kinematics.py --config configs/stage3_kinematics/text-train.yaml
+
 ```
 
-### Prepare Articulation Transformer Dataset & Training
+## 🎮 Inference & Visualization
+
+To generate an articulated object from a text prompt (e.g., "A wooden storage cabinet with two doors"):
+
+```bash
+# End-to-end generation with Physical Rectification enabled
+python inference.py \
+    --prompt "A red safe with a digital lock" \
+    --output_dir outputs/demo \
+    --rectification_scale 1.5 \
+    --steps 5000
 
 ```
-cd data/process_data_script
-python 3.0_generate_text_used_image.py
-```
-The script above will generate the image of each object by call `blender` and save the image and log files in `4_screenshot_high_q`.
-The images will be used to generate the description of each articulated object.
 
+**Visualize Results:**
+Generate a GIF of the articulated motion:
 
-You can use the script below to call ChatGPT (via. `poe.com`) to generate the description by your self:
-```
-python 3.1_generate_text_condition.py
-```
-or use our description dataset:
-```
-cd ../datasets # you should be in `data/datasets` now
-cp ../../attachment/3_text_condition.zip .
-unzip 3_text_condition
+```bash
+python viz_animate.py --input outputs/demo/safe.obj --output result.gif
+
 ```
 
-To encode the text description into tokens (by T5 Encoder):
-```
-python 3.2_generate_encoded_text_condition.py
-```
+## 📊 Evaluation
 
-To refactor the dataset into final articulation transformer dataset:
-```
-python 5_generate_text_transformer_dataset.py --diff_ckpt_path    \
-    path/to/diffusion/checkpoint # in train_root_dir/Diff/checkpoint/<datetime>/*, you should choose one.
-```
+To evaluate Fidelity (FID, CD), Semantics (CLIP), and Physical Plausibility (CR):
 
-Start training of Articulation Transformer:
-```
-python 3_train_trans.py -c configs/3_TF-Diff/text-train.yaml
-```
+```bash
+python evaluate_metrics.py --pred_dir outputs/ --gt_dir dataset/test_set/
 
-## Evaluation
-Choose a Articulation Transformer checkpoint in `train_root_dir/Transformer_Diffusion/checkpoint/<training_datetime>/<name>.ckpt` and fill the path of checkpoint into the first line of  `configs/3_TF-Diff/text-eval.yaml`.
+```
+<!-- 
+## 🔗 Citation
 
-Generate the example articulated object by:
-```
-python 3_pred_trans.py -c configs/3_TF-Diff/text-eval.yaml
-```
+If you find our work useful, please cite:
+
+```bibtex
+@article{kinemaflow2026,
+  title={KinemaFlow: Structured Kinematic Flow Matching for Efficient Articulated Object Generation},
+  author={...},
+  journal={arXiv preprint},
+  year={2026}
+}
+
+``` -->

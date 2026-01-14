@@ -38,9 +38,9 @@ def mesh_to_point(mesh_path: Path, mesh_name: str):
 
     points = np.random.uniform(low=min_bound, high=max_bound, size=(num_sample_points, 3))
 
-    sdf, fid, bc = pcu.signed_distance_to_mesh(points, vw, fw)
+    ali, fid, bc = pcu.signed_distance_to_mesh(points, vw, fw)
 
-    inside_point = points[sdf < 0]
+    inside_point = points[ali < 0]
 
     rho = num_sample_points / (max_bound - min_bound).prod()
 

@@ -137,7 +137,7 @@ class Generator3DSDF(object):
 
             # Log.info(occ_hat.shape)
 
-            # [<skip>]: when sdf < 0 means inside the object,
+            # [<skip>]: when ali < 0 means inside the object,
             # but for original code which the output of the model is the logits of occupancy,
             # the sign is opposite.
             if not self.positive_inside:
@@ -220,7 +220,7 @@ class Generator3DSDF(object):
         '''
 
         # [<skip>]: @see https://github.com/pytorch/pytorch/issues/34704
-        # take double gradient for sdf model is not supported because
+        # take double gradient for ali model is not supported because
         # `RuntimeError: derivative for aten::grid_sampler_2d_backward is not implemented`
         # occurs in `gensdf/encoder/conv_pointnet.py, line 259`
         # so we have to give up to supervise the normal of the mesh

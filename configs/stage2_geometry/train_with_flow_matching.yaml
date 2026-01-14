@@ -1,0 +1,81 @@
+# Configuration for Scheme 1: Dual Loss Hybrid Training
+
+seed: 123456790
+wandb:
+  use: true
+  project: Diff-FlowMatching
+  entity: 1785115532-harbin-institute-of-technology
+
+load_from_pretrained_ckpt: null
+
+default_root_dir: train_root_dir/Diff_FM
+num_epochs: 10001
+
+dataset_n_dataloader:
+  n_workers: 32
+  batch_size: 64
+  dataset_path: data/datasets/2.1_text_n_latentcode
+
+checkpoint:
+  path: train_root_dir/Diff_FM_Scheme1/checkpoint
+  freq: 500
+
+# ============================================
+# Flow Matching Configuration (NEW)
+# ============================================
+flow_matching:
+  enabled: true                    # 启用Flow Matching
+  loss_weight: 0.3                 # Flow Matching损失权重 (0.3 = 30% FM + 70% DDPM)
+  flow_type: 'optimal_transport'   # 'optimal_transport' 或 'conditional'
+  objective: 'pred_velocity'       # 'pred_velocity' 或 'pred_x0'
+  loss_type: 'mse'                 # 'mse' 或 'l1'
+
+# ============================================
+# Original Flow Configuration
+# ============================================
+diffusion_model_paramerter:
+  dim_latentcode: 768
+
+  z_compress_depth: 4
+  z_hat_dim: 32
+
+  gsemb_latent_dim: 4
+  gsemb_num_embeddings: 128
+
+  text_condition:
+    d_model: 1024
+    compressed_d_model: 128
+    padding_length: 16
+    resnet_deepth: 1
+    vq_n_emb: 128
+    vq_width: 4
+    vq_height: 4
+    vq_dim_emb: 64
+    vq_beta: 0.25
+
+  diffusion_config:
+    timesteps: 1000
+    objective: pred_x0              # DDPM的objective
+    loss_type: l2
+
+  diffusion_model_config:
+    depth: 4
+    text_hat_dim: 64
+    bbox_ratio_dim: 3
+    text_expand_ratio: 4
+    dim: 768
+    ff_dropout: 0.3
+    resnet_deepth: 2
+
+lr: 1.0e-5
+z_KL_ratio: 1
+tau_ratio_on_epoch: 0.0001
+
+evaluation:
+  sdf_model_path: null
+  max_batch: 8192
+  eval_mesh_output_path: train_root_dir/Diff_FM/tempmesh
+  resolution: 256
+  count: 10
+  freq_epoch: 400
+

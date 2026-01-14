@@ -73,9 +73,9 @@ def obj_to_wtobj_by_pcu_vf(obj_file):
 # @see: https://www.fwilliams.info/point-cloud-utils/sections/mesh_sdf/
 def wtobj_to_sdf_by_pcu(wt_obj_file, sdf_file, sample_method=[str, str]):
     '''
-        Generate SDF from watertight obj file
+        Generate ALI from watertight obj file
         :param wt_obj_file: watertight obj file
-        :param sdf_file: output sdf file
+        :param sdf_file: output ali file
         :param sample_method: sample method for 'point near surface' and 'point cloud' respectively
                             choice: 'poisson_disk', 'uniform'
     '''
@@ -127,16 +127,16 @@ def wtobj_to_sdf_by_pcu(wt_obj_file, sdf_file, sample_method=[str, str]):
     query_pts = np.concatenate([point_near_surface, uniform_point, point_on_surface], axis=0)
 
     Log.info('computing signed distance')
-    sdf, fid, bc = pcu.signed_distance_to_mesh(query_pts, _v, _f)
+    ali, fid, bc = pcu.signed_distance_to_mesh(query_pts, _v, _f)
 
     point_surface   = query_pts[:n_point_near_surface]
-    sdf_surface     = sdf[:n_point_near_surface]
+    sdf_surface     = ali[:n_point_near_surface]
 
     point_uniform   = query_pts[n_point_near_surface:n_point_near_surface+n_point_uniform]
-    sdf_uniform     = sdf[n_point_near_surface:n_point_near_surface+n_point_uniform]
+    sdf_uniform     = ali[n_point_near_surface:n_point_near_surface+n_point_uniform]
 
     point_on        = query_pts[n_point_near_surface+n_point_uniform:]
-    sdf_on          = sdf[n_point_near_surface+n_point_uniform:]
+    sdf_on          = ali[n_point_near_surface+n_point_uniform:]
 
     assert (point_on.shape[0] == n_point_on_surface
         and sdf_on.shape[0] == n_point_on_surface
@@ -158,8 +158,8 @@ def wtobj_to_sdf_by_pcu(wt_obj_file, sdf_file, sample_method=[str, str]):
                   f"{point_surface.min():.4f} ~ {point_surface.max():.4f}", f"{np.abs(sdf_surface).min():.4f} ~ {np.abs(sdf_surface).max():.4f}")
     table.add_row("Point On Mesh", str(point_on.shape), f"{(sdf_on < 0).astype(np.float32).mean():.4f}",
                   f"{point_on.min():.4f} ~ {point_on.max():.4f}", f"{np.abs(sdf_on).min():.4f} ~ {np.abs(sdf_on).max():.4f}")
-    table.add_row("Total", str(query_pts.shape), f"{(sdf < 0).astype(np.float32).mean():.4f}",
-                  f"{query_pts.min():.4f} ~ {query_pts.max():.4f}", f"{np.abs(sdf).min():.4f} ~ {np.abs(sdf).max():.4f}")
+    table.add_row("Total", str(query_pts.shape), f"{(ali < 0).astype(np.float32).mean():.4f}",
+                  f"{query_pts.min():.4f} ~ {query_pts.max():.4f}", f"{np.abs(ali).min():.4f} ~ {np.abs(ali).max():.4f}")
 
     console.print(table)
 
@@ -181,9 +181,9 @@ def convert_mesh(ply_file, clear_temp, wt_method, sdf_method, sample_method=['ra
 
     obj_file = temp_dir / (stem + ".obj")
     wt_obj_file = temp_dir / (stem + ".wt.ply")
-    sdf_target_file = result_dir / f'{stem}.sdf'
+    sdf_target_file = result_dir / f'{stem}.ali'
 
-    if (result_dir / f'{stem}.sdf.npz').exists():
+    if (result_dir / f'{stem}.ali.npz').exists():
         Log.info('Already exists: %s', sdf_target_file)
         return "Done"
 
@@ -197,11 +197,11 @@ def convert_mesh(ply_file, clear_temp, wt_method, sdf_method, sample_method=['ra
     else:
         raise ValueError(f'Invalid method wt_method {wt_method}')
 
-    Log.info('(3) Converting to (sdf) %s', sdf_target_file)
+    Log.info('(3) Converting to (ali) %s', sdf_target_file)
     if sdf_method == 'pcu':
-        Log.info('(3) Using pcu to generate sdf')
+        Log.info('(3) Using pcu to generate ali')
         if wtobj_to_sdf_by_pcu(wt_obj_file, sdf_target_file, sample_method) != 'Done':
-            Log.error('Error in sdf generation')
+            Log.error('Error in ali generation')
             return 'Error'
     else:
         raise ValueError(f'Invalid method sdf_method {sdf_method}')
@@ -213,7 +213,7 @@ def convert_mesh(ply_file, clear_temp, wt_method, sdf_method, sample_method=['ra
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Generate SDF from mesh files.')
+    parser = argparse.ArgumentParser(description='Generate ALI from mesh files.')
     parser.add_argument('--clear_temp_file', type=bool, default=False, help='Clear temp files')
 
     parser.add_argument('--n_sample_point', type=int, default=400000, help='Number of points for each mesh')
