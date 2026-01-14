@@ -1,1 +1,1 @@
-from .sdf_decoder import ImplicitDecoder as Decoder
+from .vae_decoder import ImplicitDecoder as Decoder
