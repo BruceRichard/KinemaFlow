@@ -1,0 +1,1 @@
+The code in this fold are adapted from TRELLIS `[model/geometry_vae/README.md](https://github.com/microsoft/TRELLIS)`.

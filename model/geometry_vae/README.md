@@ -1,1 +1,0 @@
-The code in this fold are adapted from GenSDF `https://github.com/princeton-computational-imaging/gensdf`.
