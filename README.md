@@ -9,7 +9,7 @@
 **KinemaFlow** is a novel generative framework for efficient and physically plausible 3D articulated object generation. By decoupling generation into a **Kinematics Stream** and a **Geometry Stream** via **Accelerated Flow Matching (AFT)**, we achieve state-of-the-art visual quality with significantly reduced inference latency (~200s). A **Physical Plausibility Flow Rectification** module further ensures collision-free interactions.
 
 <p align="center">
-  <img src="attachment\arc.png" width="90%"/>
+  <img src="attachment\image.png" width="90%"/>
 </p>
 
 ## 🌟 Key Features
@@ -24,7 +24,7 @@ The code is tested on Ubuntu 20.04 with Python 3.9 and PyTorch 2.0+ (CUDA 11.8).
 
 ```bash
 # 1. Clone the repository
-git clone [https://github.com/yourusername/KinemaFlow.git](https://github.com/yourusername/KinemaFlow.git)
+git clone https://github.com/BruceRichard/kinematic_flow.git
 cd KinemaFlow
 
 # 2. Create conda environment
