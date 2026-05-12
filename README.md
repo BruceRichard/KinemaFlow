@@ -49,7 +49,7 @@ KinemaFlow maintains superior physical plausibility across both joint categories
 ### Multi-Dimensional Trade-offs
 
 <p align="center">
-  <img src="attachment/pareto_tradeoff_6plots.pdf" width="95%" alt="Pareto Trade-off (6 subplots)"/>
+  <img src="attachment/pareto_tradeoff_6plots.png" width="95%" alt="Pareto Trade-off (6 subplots)"/>
   <br><em>Figure 2: Six-panel pairwise trade-off analysis across Prismatic and Revolute joints. Axes: Speed (×10⁻³ samples/s), CR (%), VQS. Top-right is ideal. KinemaFlow (red square) achieves VQS 92.8 at 4.80×10⁻³ samples/s with CR 11.75% — the most favorable overall trade-off.</em>
 </p>
 
@@ -83,14 +83,14 @@ Evaluated on StorageFurniture category of PartNet-Mobility (PM) and SN-PN (SN):
 ### Inference Efficiency
 
 <p align="center">
-  <img src="attachment/convergence.pdf" width="45%" alt="Convergence"/>
-  <img src="attachment/convergence_efficiency_log.pdf" width="45%" alt="Log-Scale Convergence"/>
+  <img src="attachment/convergence.png" width="45%" alt="Convergence"/>
+  <img src="attachment/convergence_efficiency_log.png" width="45%" alt="Log-Scale Convergence"/>
   <br><em>Figure 6: Convergence comparison (linear and log-scale). KinemaFlow reaches high-quality generation with fewer effective flow evaluations than DDPM-based alternatives.</em>
 </p>
 
 <p align="center">
-  <img src="attachment/inference_time.pdf" width="45%" alt="Inference Time"/>
-  <img src="attachment/inference_time_boxplot.pdf" width="45%" alt="Inference Time Boxplot"/>
+  <img src="attachment/inference_time.png" width="45%" alt="Inference Time"/>
+  <img src="attachment/inference_time_boxplot.png" width="45%" alt="Inference Time Boxplot"/>
   <br><em>Figure 7: Inference time comparison and distribution. KinemaFlow achieves median ~200s end-to-end with tight variance on a single RTX 4090.</em>
 </p>
 
