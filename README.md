@@ -49,13 +49,8 @@ KinemaFlow maintains superior physical plausibility across both joint categories
 ### Multi-Dimensional Trade-offs
 
 <p align="center">
-  <img src="attachment/pareto_tradeoff.png" width="95%" alt="Pareto Trade-off (6 subplots)"/>
+  <img src="attachment/pareto_tradeoff_6plots.pdf" width="95%" alt="Pareto Trade-off (6 subplots)"/>
   <br><em>Figure 2: Six-panel pairwise trade-off analysis across Prismatic and Revolute joints. Axes: Speed (×10⁻³ samples/s), CR (%), VQS. Top-right is ideal. KinemaFlow (red square) achieves VQS 92.8 at 4.80×10⁻³ samples/s with CR 11.75% — the most favorable overall trade-off.</em>
-</p>
-
-<p align="center">
-  <img src="attachment/pareto_tradeoff_time.pdf" width="50%" alt="Speed vs Quality"/>
-  <br><em>Figure 3: Speed vs. visual quality trade-off. KinemaFlow delivers better quality-physics balance at comparable feed-forward throughput to ArtFormer; large speed gap to SDS methods stems from replacing test-time optimization with trained flow matching.</em>
 </p>
 
 ### Collision Rate Optimization
