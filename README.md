@@ -83,15 +83,18 @@ Evaluated on StorageFurniture category of PartNet-Mobility (PM) and SN-PN (SN):
 ### Inference Efficiency
 
 <p align="center">
-  <img src="attachment/convergence.png" width="45%" alt="Convergence"/>
-  <img src="attachment/convergence_efficiency_log.png" width="45%" alt="Log-Scale Convergence"/>
+  <img src="attachment/convergence.png" width="85%" alt="Convergence"/>
   <br><em>Figure 6: Convergence comparison (linear and log-scale). KinemaFlow reaches high-quality generation with fewer effective flow evaluations than DDPM-based alternatives.</em>
 </p>
 
 <p align="center">
-  <img src="attachment/inference_time.png" width="45%" alt="Inference Time"/>
-  <img src="attachment/inference_time_boxplot.png" width="45%" alt="Inference Time Boxplot"/>
-  <br><em>Figure 7: Inference time comparison and distribution. KinemaFlow achieves median ~200s end-to-end with tight variance on a single RTX 4090.</em>
+  <img src="attachment/inference_time.png" width="60%" alt="Inference Time"/>
+  <br><em>Figure 7: Inference time comparison. KinemaFlow achieves median ~200s end-to-end with tight variance on a single RTX 4090.</em>
+</p>
+
+<p align="center">
+  <img src="attachment/inference_time_boxplot.png" width="85%" alt="Inference Time Boxplot"/>
+  <br><em>Figure 8: Inference time distribution. KinemaFlow achieves median ~200s end-to-end with tight variance on a single RTX 4090.</em>
 </p>
 
 | Method | Throughput (samples/s ×10⁻³) ↑ | VQS ↑ |
