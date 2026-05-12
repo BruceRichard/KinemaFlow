@@ -62,5 +62,14 @@ if __name__ == '__main__':
 
             for rep in range(3):
                 evaluator.inference_to_output_path(text_content, output_path / str(rep), blender_generated_gif=True)
+    elif OPTION == 2:
+        # Interactive single-shot inference with physical rectification
+        multiprocessing.set_start_method("spawn")
+        while True:
+            tt = time.strftime("%m-%d-%I%p-%M-%S")
+            output_path = Path('elog') / f"final_output" / f"interactive" / tt
+            text_content = input("Input the text prompts: ")
+            for rep in range(2):
+                evaluator.inference_to_output_path(text_content, output_path / str(rep), blender_generated_gif=True)
     else:
         print('NOT SUPPORT ANYMORE.')

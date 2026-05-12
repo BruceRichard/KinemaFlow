@@ -19,10 +19,12 @@ from .. import TransDiffusionCombineModel
 from models.geometry_vae import GeometryVAE
 
 from utils import untokenize_part_info, generate_gif_toy, fit_into_bounding_box
-from utils.por_cuda import POR
+from utils.por_cuda import POR, get_trans_matrix, apply_transformations
 import utils.mesh as MeshUtils
 from utils.mylogging import Log
 from utils.z_to_mesh import GenSDFLatentCodeEvaluator
+
+from models.physics_rectifier import PEBE, SweptCollisionEnergy, PhysicalRectifier, transform_primitive
 
 import sys
 sys.path.append('../../..')
@@ -76,6 +78,23 @@ class Evaluater():
                                                              max_batch=self.gensdf_config['max_batch'],
                                                              device=self.device)
 
+        # Physical Plausibility Rectification components
+        self.pebe = PEBE(latent_dim=768, num_primitives=8).to(self.device)
+        pebe_ckpt = self.eval_config.get('pebe_checkpoint_path', None)
+        if pebe_ckpt and Path(pebe_ckpt).exists():
+            Log.info("Loading PEBE checkpoint from %s", pebe_ckpt)
+            self.pebe.load_state_dict(torch.load(pebe_ckpt, map_location=self.device))
+        self.pebe.eval()
+        self.collision_energy = SweptCollisionEnergy(
+            tau=self.eval_config.get('collision_tau', 0.05),
+            num_contact_samples=self.eval_config.get('contact_samples', 256)
+        )
+        self.rectifier = PhysicalRectifier(
+            self.pebe, self.collision_energy,
+            guidance_scale=self.eval_config.get('rectification_scale', 1.5),
+            active_ratio=0.8
+        )
+
     def encode_text(self, text):
         input_ids = self.tokenizer([text], return_tensors="pt", padding='max_length',
                                     max_length=self.t5_max_sentence_length).input_ids
@@ -93,6 +112,84 @@ class Evaluater():
         difference = torch.nn.functional.mse_loss(token[:length], self.end_token[:length])
         Log.info('    - Difference with end token: %s', difference.item())
         return difference < self.equal_part_threshold
+
+    def _build_articulation_transforms(self, processed_nodes: list,
+                                        n_states: int = 5) -> list:
+        """Build per-state SE(3) transforms for all parts.
+
+        States are sampled from joint limits evenly: closed(0), open(1),
+        midpoint(0.5), and intermediates.
+
+        Returns:
+            list of dicts: [ {part_idx: [1, 4, 4]}, ... ] per state
+        """
+        ratios = torch.linspace(0, 1, n_states)
+        id_to_fa = {}
+        for node in processed_nodes:
+            cur_id = node.get('dfn', 0)
+            fa = node.get('dfn_fa', 0)
+            id_to_fa[cur_id] = fa
+
+        transforms_per_state = []
+        for ratio in ratios:
+            M_dict = {}
+            for part in processed_nodes:
+                cur_id = part.get('dfn', 0)
+                M = get_trans_matrix(part, ratio.item())
+                M_dict[cur_id] = M
+
+            keys = sorted(M_dict.keys())
+            for cur_id in keys:
+                if cur_id != 0 and id_to_fa.get(cur_id, 0) in M_dict:
+                    fa = id_to_fa[cur_id]
+                    M_dict[cur_id] = M_dict[cur_id] @ M_dict[fa]
+
+            batched = {k: v.unsqueeze(0) for k, v in M_dict.items()}
+            transforms_per_state.append(batched)
+
+        return transforms_per_state
+
+    def _compute_primitives_from_nodes(self, processed_nodes: list) -> list:
+        """Compute PEBE primitives for each part from latent codes.
+
+        Returns:
+            list of dicts with 'mu', 'S', 'epsilon' per part
+        """
+        primitives = []
+        for part in processed_nodes:
+            if 'z' in part:
+                z = part['z'].unsqueeze(0).to(self.device)
+                with torch.no_grad():
+                    prim = self.pebe(z)
+                primitives.append({
+                    'mu': prim['mu'],
+                    'S': prim['S'],
+                    'epsilon': prim['epsilon'],
+                })
+            else:
+                primitives.append({
+                    'mu': torch.zeros(1, 8, 3, device=self.device),
+                    'S': torch.eye(3, device=self.device).view(1, 1, 3, 3).expand(1, 8, 3, 3),
+                    'epsilon': torch.ones(1, 8, device=self.device),
+                })
+        return primitives
+
+    def _rectify_latents(self, latent_codes: torch.Tensor,
+                          processed_nodes: list,
+                          step: int, total_steps: int) -> torch.Tensor:
+        """Apply physical rectification corrector step.
+
+        x̂ = x - γ ∇E_phys(x)  (Eq. 9)
+        """
+        primitives = self._compute_primitives_from_nodes(processed_nodes)
+        parent_indices = [n.get('dfn_fa', 0) for n in processed_nodes]
+        transforms_per_state = self._build_articulation_transforms(
+            processed_nodes, n_states=5
+        )
+        return self.rectifier.correct(
+            latent_codes, primitives, transforms_per_state,
+            parent_indices, step, total_steps
+        )
 
     def inference_from_text(self, text, enc_data=None, need_mesh=True):
         Log.info('[1] Inference text: %s', len(text))
@@ -163,10 +260,29 @@ class Evaluater():
 
         Log.info('[3] reconstruct latent code with condition')
         if use_shape_prior:
-            latent = self.models.geometry_flow.model.generate_conditional({
+            cond = {
                 'z_hat': exist_node['z_hat'],
                 'text': exist_node['text_hat'],
-            })
+            }
+            latent = self.models.geometry_flow.model.generate_conditional(cond)
+
+            enable_rectification = self.eval_config.get('enable_rectification', True)
+            if enable_rectification:
+                temp_process = []
+                for idx in range(exist_node['fa'].shape[0]):
+                    token_data = exist_node['token'][idx].cpu().tolist()
+                    part_info = untokenize_part_info(token_data)
+                    part_info['dfn'] = idx
+                    part_info['dfn_fa'] = exist_node['fa'][idx].item()
+                    temp_process.append(part_info)
+
+                if len(temp_process) > 1:
+                    Log.info('   - Applying physical rectification on latents')
+                    rectified_latent = self._rectify_latents(
+                        latent, temp_process, step=0, total_steps=100
+                    )
+                    latent = rectified_latent
+
             exist_node['token'] = torch.cat((exist_node['token'], latent), dim=-1)
         else:
             exist_node['token'] = torch.cat((exist_node['token'], exist_node['latent']), dim=-1)

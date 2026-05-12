@@ -1,17 +1,15 @@
+"""
+KinemaFlow Interactive Demo
+Run: python run_demo.py --config configs/stage3_kinematics/text-eval.yaml
+"""
 from utils import parse_config_from_args
 from lightning.pytorch import seed_everything
 from models.kinematics_net.eval import Evaluater
 from utils.mylogging import Log
 from pathlib import Path
 
-from rich import print
-from tqdm import tqdm
-
 import multiprocessing
-import numpy as np
 import time
-import random
-import shutil
 import torch
 import os
 
@@ -22,13 +20,35 @@ if __name__ == '__main__':
     config = parse_config_from_args()
     Log.info(f'Loading : {Evaluater}')
     evaluator = Evaluater(config)
-
     multiprocessing.set_start_method("spawn")
 
-    while True:
-        tt = time.strftime("%m-%d-%I%p-%M-%S")
-        output_path = Path('elog') / f"final_output" / tt
-        text_content = input("Input the text prompts:")
+    print("=" * 60)
+    print("KinemaFlow Interactive Demo")
+    print("Enter text prompts to generate articulated 3D objects.")
+    print("Physical Plausibility Rectification: ENABLED")
+    print(f"  Rectification scale: {config.get('rectification_scale', 1.5)}")
+    print("Type 'quit' or Ctrl+C to exit.")
+    print("=" * 60)
 
-        for rep in range(5):
-            evaluator.inference_to_output_path(text_content, output_path / str(rep), blender_generated_gif=True)
+    while True:
+        try:
+            tt = time.strftime("%m-%d-%I%p-%M-%S")
+            output_path = Path('elog') / "final_output" / tt
+            text_content = input("\nInput text prompt: ")
+
+            if text_content.lower() in ('quit', 'exit', 'q'):
+                break
+
+            for rep in range(2):
+                evaluator.inference_to_output_path(
+                    text_content, output_path / str(rep),
+                    blender_generated_gif=True
+                )
+            print(f"Results saved to: {output_path}")
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            Log.error(f"Error: {e}")
+            continue
+
+    print("Demo ended.")
